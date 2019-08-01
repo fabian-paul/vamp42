@@ -24,10 +24,12 @@ class VAMP42(object):
         principal_vector =  vectors[:, order[-2]]
         # TODO: project all the points to the first IC and find median
         #proj = np.concatenate((np.dot(X, principal_vector), np.dot(Y, principal_vector)))
-        proj = np.dot(X, principal_vector)
-        median_pos = np.argsort(proj)[len(X)//2]]
-        intercept = np.linagl.norm(X[median_pos, :])
+        #proj = np.dot(X, principal_vector)
+        #median_pos = np.argsort(proj)[len(X)//2]]
+        #intercept = np.linagl.norm(X[median_pos, :])
+        
         self.initial = principal_vector
+        print('initial', self.initial)
 
     def selftest(self, delta=1.E-8):
         #err = scipy.optimize.check_grad(self.function, self.gradient, self.initial, epsilon=delta)
@@ -40,7 +42,8 @@ class VAMP42(object):
         f1, grad1 = self.function_and_gradient(x0)
         f2 = self.function(x0 + direction)
         df = np.dot(grad1, direction)
-        rel_err = np.abs(f2 - f1 - df) / max(abs(f1), abs(f2))
+        #rel_err = np.abs(f2 - f1 - df) / max(abs(f1), abs(f2))
+        rel_err = np.abs(f2 - f1 - df) / np.abs(f2 - f1)
         #logging.info('Self-test for VAMP score yields a finite difference of '
         #             '%f and a directional derivative of %f. This corresponds '
         #             'to a relative error of %f.' % (f2-f1, df, err))
@@ -72,8 +75,8 @@ class VAMP42(object):
 
     @property
     def ext_hnf(self):
-        norm = np.linalg.norm(self._b[0:-1])
-        return (self._b[0:-1] / norm, self._b[-1] / norm, norm)
+        norm = np.linalg.norm(self._b[1:])
+        return (self._b[1:] / norm, self._b[0] / norm, norm)
 
     @property
     def hnf(self):
