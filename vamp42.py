@@ -11,45 +11,38 @@ def sigma(x):
 
 class VAMP42(object):
     def __init__(self, X, Y, init='linear'):
+        r'''Find the main kinetic dividing plane with the variational approach to Markov processes (VAMP).
+        
+        Parameters
+        ----------
+        X : ndarray((T, 2))
+           Initial points form all transition pairs.
+        Y : ndarray((T, 2))
+           Final points from all transition pairs.
+        '''
         # augment X and Y with constant
         T = len(X)
         ones = np.ones(shape=(T, 1))
         self.X = np.hstack((ones, X))
         self.Y = np.hstack((ones, Y))
 
-        if init=='random':
-            self.initial = np.random.rand(X.shape[1] + 1)
-        elif init=='linear':
+        if isinstance(init, str) and init=='random':
+            # pick proper scale and shift that matches the data
+            scales = 1./(np.std(np.concatenate((X, Y)), axis=0) + 1.E-8)
+            self.initial = np.zeros(X.shape[1] + 1)
+            self.initial[1:] = (np.random.rand(X.shape[1]) - 0.5) * scales
+            self.initial[0] = -np.vdot(self.initial[1:], np.mean(np.concatenate((X, Y)), axis=0))  # make initial plane go through the data mean
+        elif isinstance(init, str) and init=='linear':
             # find an intial point, by solving the linear problem
             C00 = np.dot(self.X.T, self.X) / T
             C11 = np.dot(self.Y.T, self.Y) / T
             C01 = np.dot(self.X.T, self.Y) / T
             C00_inv = np.linalg.inv(C00)
             C11_inv = np.linalg.inv(C11)
-            #print('dets', np.linalg.det(C00), np.linalg.det(C11))
             values, vectors = np.linalg.eig(np.linalg.multi_dot((C00_inv, C01, C11_inv, C01.T)))
-            #vamp._vectors[:, 2] 
-            order = np.argsort(values)
-            principal_vector = vectors[:, order[-2]]
-            #principal_vector = np.dot(scipy.linalg.sqrtm(C11_inv), vectors[:, order[-2]])
-            norm = np.linalg.norm(principal_vector[1:])
-            # TODO: shift my median and not by mean
-            # TODO: set steepness to some meaningful value (not too high!)
-            # TODO: project all the points to the first IC and find median
-            #proj = np.concatenate((np.dot(X, principal_vector), np.dot(Y, principal_vector)))
-            #proj = np.dot(X, principal_vector)
-            #median_pos = np.argsort(proj)[len(X)//2]]
-            #intercept = np.linagl.norm(X[median_pos, :])
-            self.initial = principal_vector / norm
-            stdn = np.dot(np.dot(C00[1:, 1:], principal_vector[1:]), principal_vector[1:])**2  # lala TODO TODO
-            #self._values = values
-            #self._vectors = vectors
-            #self._values2, self._vectors2 = np.linalg.eig(np.linalg.multi_dot((C11_inv, C01.T, C00_inv, C01)))
-            #self._C00 = C00
-            #self._C11 = C11
-            #self._sqrtC00_inv = scipy.linalg.sqrtm(C00_inv)
-            #self._sqrtC11_inv = scipy.linalg.sqrtm(C11_inv)
-            #print('initial', self.initial)
+            order = np.argsort(values.real)
+            principal_vector = vectors[:, order[-2]].real
+            self.initial = principal_vector
         else:
             self.initial = init
 
@@ -61,8 +54,8 @@ class VAMP42(object):
 
         x0 = self.initial
         direction = np.random.rand(len(self.initial)) * delta
-        f1, grad1 = self.function_and_gradient(x0)
-        f2 = self.function(x0 + direction)
+        f1, grad1 = self.score_function_and_gradient(x0)
+        f2 = self.score_function(x0 + direction)
         df = np.dot(grad1, direction)
         #rel_err = np.abs(f2 - f1 - df) / max(abs(f1), abs(f2))
         rel_err = np.abs(f2 - f1 - df) / np.abs(f2 - f1)
@@ -70,28 +63,20 @@ class VAMP42(object):
         sign_correct = (np.sign(df) == np.sign(f2 - f1))
         if not sign_correct:
             warnings.warn('Analytical gradient has wrong sign.')
-            print('Analytical gradient has wrong sign.')
-        if rel_err > delta*1000:
+        if rel_err > 0.001:
             warnings.warn('Error %f of analytical gradient seems too large. Expected O(eps).' % rel_err)
-            print('Error %f of analytical gradient seems too large. Expected O(eps).' % rel_err)
-        #logging.info('Self-test for VAMP score yields a finite difference of '
-        #             '%f and a directional derivative of %f. This corresponds '
-        #             'to a relative error of %f.' % (f2-f1, df, err))
+            # print('Error %f of analytical gradient seems too large. Expected O(eps).' % rel_err)
         return rel_err, sign_correct
 
-    def run(self, approx=False, disp=0):
+    def run(self, approx=False):
+        'Perform optimization of the VAMP score, finding the optimal parameters of the sigmoid.'
         if approx:
             fprime = None
         else:
             self.selftest()
-            fprime = self.gradient
+            fprime = self.score_gradient
         xopt, fopt, self._gopt, Bopt, self._func_calls, self._grad_calls, self._warnflag, hist = \
-            scipy.optimize.fmin_bfgs(f=self.function, x0=self.initial, fprime=fprime, disp=0, full_output=True, retall=True)
-        #print('len', len(other))
-        #print(other)
-        #print('hist', hist)
-        #warnflag = 0
-        # = result
+            scipy.optimize.fmin_bfgs(f=self.score_function, x0=self.initial, fprime=fprime, disp=0, full_output=True, retall=True)
         if self._warnflag != 0:
             if self._warnflag == 1:
                 warnings.warn('BFGS returned with error: Maximum number of iterations exceeded.')
@@ -100,8 +85,15 @@ class VAMP42(object):
             else:
                 warnings.warn('BFGS returned with error code ' + str(self._warnflag))
         self._b = xopt
-        self._score = fopt
-        self.hist = -np.array([self.function(x) for x in hist])
+        self._score = -fopt
+        self.hist = -np.array([self.score_function(x) for x in hist])
+
+        # find normalization of singular functions
+        self._std_left = np.std(sigma(np.dot(self.X, self._b)))
+        self._std_right = np.std(sigma(np.dot(self.Y, self._b)))
+
+        self._var_left = np.var(sigma(np.dot(self.X, self._b)))
+        self._var_right = np.var(sigma(np.dot(self.Y, self._b)))
 
         return self
 
@@ -111,14 +103,27 @@ class VAMP42(object):
 
     @property
     def ext_hnf(self):
+        'Hesse normal form (normal, -distance) and steepness parameter of the dividing plane.'
         norm = np.linalg.norm(self._b[1:])
+        if self._b[0] / norm > 0:
+            norm = -norm
         return (self._b[1:] / norm, self._b[0] / norm, norm)
 
     @property
-    def hnf(self):
-        return (self.ext_hnf[0], self.ext_hnf[1])
+    def ext_hnf_initial(self):
+        'Hesse normal form (normal, -distance) and steepness parameter of the dividing plane.'
+        norm = np.linalg.norm(self.initial[1:])
+        if self.initial[0] / norm > 0:
+            norm = -norm
+        return (self.initial[1:] / norm, self.initial[0] / norm, norm)
 
-    def function_and_gradient(self, b, which='both'):
+    @property
+    def hnf(self):
+        'Hesse normal form (normal, -distance) of the dividing plane.'
+        ext_hnf = self.ext_hnf
+        return (ext_hnf[0], ext_hnf[1])
+
+    def score_function_and_gradient(self, b, which='both'):
         T = len(self.X)
         sxp = sigma(np.dot(self.X, b))
         sxm = 1. - sxp
@@ -201,25 +206,37 @@ class VAMP42(object):
         else:
             raise ValueError('which should one of "function", "gradient", or "both"')
 
-    def function(self, b):  # -> score function
-        return self.function_and_gradient(b, 'function')
+    def score_function(self, b):
+        return self.score_function_and_gradient(b, 'function')
 
-    def gradient(self, b):  # -> score gradient
-        return self.function_and_gradient(b, 'gradient')
+    def score_gradient(self, b):
+        return self.score_function_and_gradient(b, 'gradient')
         
-    def f(self, X):
-        T = len(X)
-        ones = np.ones(shape=(T, 1))
-        X_aug = np.hstack((ones, X))
-        return sigma(np.dot(X_aug, self.b))
+    def f(self, x):
+        'Eigenfunction evaluated at point x.'
+        return sigma(np.dot(x, self._b[1:]) + self._b[0])
 
-    def kinetic_distance(self, x, y):
-        # get the eigenvalue, which is 1 - the optimal vamp score
-        # scale the eigenvector (var ev == 1)
-        pass
+    def assign(self, x):
+        'Crisp assingment of data points to one of the two "states"'
+        return (np.dot(x, self._b[1:]) + self._b[0] > 0).astype(int)
+
+    @property
+    def eigenvalue(self):
+        'The dominant VAMP singular value.'
+        return self._score - 1.
+
+    def kinetic_distance(self, a, b, normed=False):
+        'Kinetic distance between points a and b.'
+        # mean-free property of the singular function is irrelevant here, since we compute the difference
+        delta = self.eigenvalue * (sigma(np.dot(a, self._b[1:]) + self._b[0]) - sigma(np.dot(b, self._b[1:]) + self._b[0]))**2
+        if normed:
+            return delta / self._var_left
+        else:
+            return delta
+
 
 if __name__== '__main__':
-    dim = 5
+    dim = 99
     X = np.vstack((np.random.randn(100, dim) + 8*np.ones(dim), 
                    np.random.randn(100, dim)))
     Y = X + np.random.randn(200, dim)    
@@ -232,6 +249,6 @@ if __name__== '__main__':
     vamp = VAMP42(X, Y).run(approx=False)
     normal, intercept, steepness = vamp.ext_hnf
     print('score:', vamp._score)
-    print('normal, intercept, steepness:', normal, intercept, steepness)
+    #print('normal, intercept, steepness:', normal, intercept, steepness)
     
     
