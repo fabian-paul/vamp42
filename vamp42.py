@@ -10,7 +10,7 @@ def sigma(x):
     return scipy.special.expit(x)
 
 class VAMP42(object):
-    def __init__(self, X, Y, init='linear', publication_gradient=False):
+    def __init__(self, X, Y, init='linear', publication_gradient=True):
         r'''Find the main kinetic dividing plane with the variational approach to Markov processes (VAMP).
         
         Parameters
@@ -54,7 +54,7 @@ class VAMP42(object):
         #return err
 
         x0 = self.initial
-        direction = np.random.rand(len(self.initial)) * delta
+        direction = (np.random.rand(len(self.initial)) - 0.5) * delta
         f1, grad1 = self.score_function_and_gradient(x0)
         f2 = self.score_function(x0 + direction)
         df = np.dot(grad1, direction)
@@ -211,9 +211,9 @@ class VAMP42(object):
             YtYp[1, :, 0] = np.dot(self.Y.T, sypm*sym) / T
             YtYp[0, :, 1] = -np.dot(self.Y.T, sypm*syp) / T
             gradient = 2*np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp)
-            gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kf, C11_inv, Kr.T, XtXp)
-            gradient = 2*np.einsum('ij,jk,kni->n', Kr, C00_inv, XtYp)
-            gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kr, C00_inv, Kf.T, YtYp)
+            gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kf, C11_inv, Kf.T, XtXp)
+            gradient += 2*np.einsum('ij,jk,kni->n', Kr, C00_inv, XtYp)
+            gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kr, C00_inv, Kr.T, YtYp)
 
         assert gradient.shape == (d,)
 

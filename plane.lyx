@@ -712,5 +712,98 @@ Terme einzeln ableiten
 
 \end_layout
 
+\begin_layout Subsection*
+Canonical form
+\end_layout
+
+\begin_layout Standard
+Term1
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+-\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}(\mathbf{X}^{\top}\mathbf{X}^{\prime}+\mathbf{X}^{\prime\top}\mathbf{X})\mathbf{K}_{f}) & =\\
+-\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{X}^{\prime}\mathbf{K}_{f})-\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\prime\top}\mathbf{X}\mathbf{K}_{f}) & =\\
+-\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{X}^{\prime}\mathbf{K}_{f})-\mathrm{Tr}(\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{X}^{\prime}\mathbf{K}_{f}\mathbf{C}_{11}^{-1}) & =\\
+-\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{X}^{\prime})-\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{X}^{\prime}) & =\\
+-2\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{X}^{\prime})
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Term2+Term4
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}(\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime})) & +\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}(\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}))=\\
+\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\prime\top}\mathbf{Y})+\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{Y}^{\prime}) & +\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{X}^{\prime})+\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\prime\top}\mathbf{X})=\\
+\mathrm{Tr}(\mathbf{Y}^{\top}\mathbf{X}^{\prime}\mathbf{K}_{f}\mathbf{C}_{11}^{-1})+\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{Y}^{\prime}) & +\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{X}^{\prime})+\mathrm{Tr}(\mathbf{X}^{\top}\mathbf{Y}^{\prime}\mathbf{K}_{r}\mathbf{C}_{00}^{-1})=\\
+\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}\mathbf{Y}^{\top}\mathbf{X}^{\prime})+\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{Y}^{\prime}) & +\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{X}^{\prime})+\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{X}^{\top}\mathbf{Y}^{\prime})=\\
+\mathrm{Tr}\left[\mathbf{K}_{f}\mathbf{C}_{11}^{-1}\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{X}^{\prime}\right] & +\mathrm{Tr}\left[\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{Y}^{\prime}+\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{X}^{\top}\mathbf{Y}^{\prime}\right]=\\
+\mathrm{Tr}\left[(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}+\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top})\mathbf{Y}^{\top}\mathbf{X}^{\prime}\right] & +\mathrm{Tr}\left[(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}+\mathbf{K}_{r}\mathbf{C}_{00}^{-1})\mathbf{X}^{\top}\mathbf{Y}^{\prime}\right]=\\
+2\mathrm{Tr}\left[\mathbf{K}_{f}\mathbf{C}_{11}^{-1}\mathbf{Y}^{\top}\mathbf{X}^{\prime}\right] & +2\mathrm{Tr}\left[\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{X}^{\top}\mathbf{Y}^{\prime}\right]
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Term3
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+-\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}(\mathbf{Y}^{\top}\mathbf{Y}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{Y})\mathbf{K}_{r}) & =\\
+-\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{Y}^{\prime}\mathbf{K}_{r})-\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\prime\top}\mathbf{Y}\mathbf{K}_{r}) & =\\
+-\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{Y}^{\prime})-\mathrm{Tr}(\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{Y}^{\prime}\mathbf{K}_{r}\mathbf{C}_{00}^{-1}) & =\\
+-\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{Y}^{\prime})-\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{Y}^{\prime}) & =\\
+-2\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{Y}^{\prime})
+\end{align*}
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+R^{\prime} & =\mathrm{2Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}\mathbf{Y}^{\top}\mathbf{X}^{\prime})-2\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}\mathbf{X}^{\top}\mathbf{X}^{\prime})\\
+ & +2\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{X}^{\top}\mathbf{Y}^{\prime})-2\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top}\mathbf{Y}^{\prime})\\
+ & =2\mathrm{Tr}\left[\mathbf{K}_{f}\mathbf{C}_{11}^{-1}(\mathbf{Y}^{\top}-\mathbf{K}_{f}^{\top}\mathbf{X}^{\top})\mathbf{X}^{\prime}\right]+2\mathrm{Tr}\left[\mathbf{K}_{r}\mathbf{C}_{00}^{-1}(\mathbf{X}^{\top}-\mathbf{K}_{r}^{\top}\mathbf{Y}^{\top})\mathbf{Y}^{\prime}\right]
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+original term:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+R^{\prime} & =2\mathrm{Tr}\left(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}(\mathbf{Y}-\mathbf{K}_{f}^{\top}\mathbf{X})\mathbf{X}^{\prime\top}\right)\\
+ & +2\mathrm{Tr}\left(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}(\mathbf{X}-\mathbf{K}_{r}^{\top}\mathbf{Y})\mathbf{Y}^{\prime\top}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
 \end_body
 \end_document
