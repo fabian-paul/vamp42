@@ -1,0 +1,716 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2cm
+\rightmargin 2cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Learning a single sigmoid with VAMP
+\end_layout
+
+\begin_layout Standard
+Score:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+R=\mathbf{Tr}(\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top})
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mathbf{C}_{00} & =\mathbf{X}^{\top}\mathbf{X}\\
+\mathbf{C}_{11} & =\mathbf{Y}^{\top}\mathbf{Y}\\
+\mathbf{C}_{01} & =\mathbf{X}^{\top}\mathbf{Y}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+The VAMP score is independent of any invertible linear transform(s) 
+\begin_inset Formula $T_{0}$
+\end_inset
+
+ and 
+\begin_inset Formula $T_{1}$
+\end_inset
+
+ of its two bases:
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+R=\mathbf{Tr}(T_{0}^{-1}\mathbf{C}_{00}^{-1}T_{0}^{-1}T_{0}\mathbf{C}_{01}T_{1}T_{1}^{-1}\mathbf{C}_{11}^{-1}T_{1}^{-1}T_{1}\mathbf{C}_{01}^{\top}T_{0})
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Therfore we can ignore the linear part completely here.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathbf{X}=\begin{pmatrix}\sigma(\mathbf{b}\cdot\mathbf{x}_{1}) & \sigma(-\mathbf{b}\cdot\mathbf{x}_{1})\\
+\sigma(\mathbf{b}\cdot\mathbf{x}_{2}) & \sigma(-\mathbf{b}\cdot\mathbf{x}_{2})\\
+\vdots & \vdots
+\end{pmatrix}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathbf{Y}=\begin{pmatrix}\sigma(\mathbf{b}\cdot\mathbf{y}_{1}) & \sigma(-\mathbf{b}\cdot\mathbf{y}_{1})\\
+\sigma(\mathbf{b}\cdot\mathbf{y}_{2}) & \sigma(-\mathbf{b}\cdot\mathbf{y}_{2})\\
+\vdots & \vdots
+\end{pmatrix}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+using 
+\begin_inset Formula $\sigma(-x)=1-\sigma(x)$
+\end_inset
+
+ which ensures that the constant function can be represented (
+\begin_inset Formula $\sigma(x)+\sigma(-x)=1$
+\end_inset
+
+).
+ This avoids the need to remove the mean of the data.
+\end_layout
+
+\begin_layout Standard
+We are also working with an extended data vector 
+\begin_inset Formula $\mathbf{x}$
+\end_inset
+
+ such that 
+\begin_inset Formula $\mathbf{b}\cdot\mathbf{x}=\sum_{i}b_{i}x_{i}+b_{0}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+Gradient of the score
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+\nabla_{\mathbf{b}}R=\underset{\mathbb{R}^{1\times2}}{\underbrace{\nabla_{\mathbf{C}}R}}\,\underset{\mathbb{R}^{2\times2\times T}}{\underbrace{\nabla_{\mathbf{X}}\mathbf{C}}}\,\underset{\mathbb{R}^{2\times T\times(d+1)}}{\underbrace{\nabla_{\mathbf{b}}\mathbf{X}}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\frac{\partial}{\partial b_{i}}R=\sum_{k,l,t,j}\frac{\partial R}{\partial C_{kl}}\frac{\partial C_{kl}}{\partial X_{tj}}\frac{\partial X_{tj}}{\partial b_{i}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Derivative of the Covariance matrices and their inverses
+\end_layout
+
+\begin_layout Standard
+using the shorthand notation 
+\begin_inset Formula $\mathrm{d}\mathbf{X}=\mathbf{X}^{\prime}$
+\end_inset
+
+, 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathrm{d}\mathbf{C}_{00}=\mathrm{d}\mathbf{X}^{\top}\mathbf{X}=(\mathrm{d}\mathbf{X}^{\top})\mathbf{X}+\mathbf{\mathbf{X}^{\top}}\mathrm{d}\mathbf{X}=\mathbf{X}^{\top}\mathbf{X}^{\prime}+\mathbf{X}^{\prime\top}\mathbf{X}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathrm{d}\mathbf{C}_{11}=\mathbf{Y}^{\top}\mathbf{Y}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{Y}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathrm{d}\mathbf{C}_{01}=\mathrm{d}\mathbf{X}^{\top}\mathbf{Y}=(\mathrm{d}\mathbf{X}^{\top})\mathbf{Y}+\mathbf{\mathbf{X}^{\top}}\mathrm{d}\mathbf{Y}=\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathrm{d}\mathbf{C}_{01}^{\top}=\mathrm{d}\mathbf{X}^{\top}\mathbf{Y}=(\mathrm{d}\mathbf{X}^{\top})\mathbf{Y}+\mathbf{\mathbf{X}^{\top}}\mathrm{d}\mathbf{Y}=\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+0 & =\mathrm{d}(\mathbf{C}\mathbf{C}^{-1})=\mathbf{C}^{-1}\mathrm{d}\mathbf{C}+\mathbf{C}\mathrm{d}\mathbf{C}^{-1}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathrm{d}\mathbf{C}^{-1}=-\mathbf{C}^{-1}\mathrm{d}\mathbf{C}\mathbf{C}^{-1}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Derivative of the trace
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mathrm{d}R & =\mathrm{d}\mathbf{Tr}(\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top})\\
+ & =\mathbf{Tr}\mathrm{d}(\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top})\\
+ & =\mathbf{Tr}(\mathrm{d}\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}+\mathbf{C}_{00}^{-1}\mathrm{d}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}+\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathrm{d}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}+\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathrm{d}\mathbf{C}_{01}^{\top})\\
+ & =\mathbf{Tr}(-\mathbf{C}_{00}^{-1}\mathrm{d}\mathbf{C}_{00}\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}+\mathbf{C}_{00}^{-1}\mathrm{d}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}-\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathrm{d}\mathbf{C}_{11}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}+\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathrm{d}\mathbf{C}_{01}^{\top})
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection*
+Term 1:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mathrm{Tr}(-\mathbf{C}_{00}^{-1}\mathrm{d}\mathbf{C}_{00}\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}) & =-\mathrm{Tr}(\mathbf{C}_{00}^{-1}(\mathbf{X}^{\top}\mathbf{X}^{\prime}+\mathbf{X}^{\prime\top}\mathbf{X})\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top})\\
+ & =-\mathrm{Tr}(\mathbf{C}_{00}^{-1}(\mathbf{X}^{\top}\mathbf{X}^{\prime}+\mathbf{X}^{\prime\top}\mathbf{X})\mathbf{K}_{f}\mathbf{K}_{r})\\
+ & =-\mathrm{Tr}(\mathbf{K}_{f}^{\top}(\mathbf{X}^{\top}\mathbf{X}^{\prime}+\mathbf{X}^{\prime\top}\mathbf{X})\mathbf{K}_{f}\mathbf{C}_{11}^{-1})\\
+ & =-\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}(\mathbf{X}^{\top}\mathbf{X}^{\prime}+\mathbf{X}^{\prime\top}\mathbf{X})\mathbf{K}_{f})
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection*
+Term 2:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathrm{d}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}) & =\mathrm{Tr}(\mathbf{C}_{00}^{-1}(\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime})\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top})\\
+ & =\mathrm{Tr}(\mathbf{C}_{00}^{-1}(\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime})\mathbf{K}_{r})\\
+ & =\mathrm{Tr}(\mathbf{K}_{f}^{\top}(\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime})\mathbf{C}_{11}^{-1})\\
+ & =\mathrm{Tr}(\mathbf{C}_{11}^{-1}\mathbf{K}_{f}^{\top}(\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime}))
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection*
+Term 3:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mathrm{Tr}(-\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathrm{d}\mathbf{C}_{11}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}) & =-\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}(\mathbf{Y}^{\top}\mathbf{Y}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{Y})\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top})\\
+ & =-\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}(\mathbf{Y}^{\top}\mathbf{Y}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{Y})\mathbf{K}_{r})\\
+ & =-\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}(\mathbf{Y}^{\top}\mathbf{Y}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{Y})\mathbf{K}_{r})
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection*
+Term 4:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathrm{d}\mathbf{C}_{01}^{\top}) & =\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}(\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}))\\
+ & =\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}(\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}))\\
+ & =\mathrm{Tr}(\mathbf{C}_{00}^{-1}\mathbf{K}_{r}^{\top}(\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}))
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection*
+Term 1+2:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}(\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime}-(\mathbf{X}^{\top}\mathbf{X}^{\prime}+\mathbf{X}^{\prime\top}\mathbf{X})\mathbf{K}_{f})$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathrm{Tr}(\mathbf{C}_{00}^{-1}(-\mathbf{X}^{\top}\mathbf{X}^{\prime}\mathbf{K}_{f}\mathbf{K}_{r}-\mathbf{X}^{\prime\top}\mathbf{X}\mathbf{K}_{f}\mathbf{K}_{r}+\mathbf{X}^{\prime\top}\mathbf{Y}\mathbf{K}_{r}+\mathbf{X}^{\top}\mathbf{Y}^{\prime}\mathbf{K}_{r}))$
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset Formula $=$
+\end_inset
+
+
+\begin_inset Formula $\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}(-\mathbf{X}^{\top}\mathbf{X}^{\prime}\mathbf{K}_{f}-\mathbf{X}^{\prime\top}\mathbf{X}\mathbf{K}_{f}+\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime}))$
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection*
+Term 3+4:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}(\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}-(\mathbf{Y}^{\top}\mathbf{Y}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{Y})\mathbf{K}_{r}))$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula $\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}(-\mathbf{Y}^{\top}\mathbf{Y}^{\prime}\mathbf{K}_{r}-\mathbf{Y}^{\prime\top}\mathbf{Y}\mathbf{K}_{r}+\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}))$
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Combining all terms
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+R^{\prime} & =\mathrm{Tr}(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}(\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}-(\mathbf{Y}^{\top}\mathbf{Y}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{Y})\mathbf{K}_{r}))\\
+ & +\mathrm{Tr}(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}(\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime}-(\mathbf{X}^{\top}\mathbf{X}^{\prime}+\mathbf{X}^{\prime\top}\mathbf{X})\mathbf{K}_{f}))
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+\mathrm{d}R=\mathbf{Tr}(-2\mathbf{C}_{00}^{-1}\mathbf{X}^{\top}\mathbf{X}^{\prime}\mathbf{K}+\mathbf{C}_{00}^{-1}(\mathbf{X}^{\prime\top}\mathbf{Y}+\mathbf{X}^{\top}\mathbf{Y}^{\prime})\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}-2\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}\mathbf{Y}^{\top}\mathbf{Y}^{\prime}\mathbf{C}_{11}^{-1}\mathbf{C}_{01}^{\top}+\mathbf{C}_{00}^{-1}\mathbf{C}_{01}\mathbf{C}_{11}^{-1}(\mathbf{Y}^{\top}\mathbf{X}^{\prime}+\mathbf{Y}^{\prime\top}\mathbf{X}))
+\]
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+Compare to solution from the VAMP paper [Mardt et al.] (their 
+\begin_inset Formula $\mathbf{X}^{\top}$
+\end_inset
+
+ is our 
+\begin_inset Formula $\mathbf{X}$
+\end_inset
+
+ and similarly for 
+\begin_inset Formula $\mathbf{Y}$
+\end_inset
+
+):
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+R^{\prime} & =2\mathrm{Tr}\left(\mathbf{K}_{f}\mathbf{C}_{11}^{-1}(\mathbf{Y}-\mathbf{K}_{f}^{\top}\mathbf{X})\mathbf{X}^{\prime\top}\right)\\
+ & +2\mathrm{Tr}\left(\mathbf{K}_{r}\mathbf{C}_{00}^{-1}(\mathbf{X}-\mathbf{K}_{r}^{\top}\mathbf{Y})\mathbf{Y}^{\prime\top}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Derivative of the feature vector w.r.t the parameters
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\nabla_{\mathbf{b}}\sigma(\mathbf{b}\cdot\mathbf{x})=\mathbf{x}\sigma(\mathbf{b}\cdot\mathbf{x})\sigma(-\mathbf{b}\cdot\mathbf{x})=\mathbf{x}\sigma(\mathbf{b}\cdot\mathbf{x})\left(1-\sigma(\mathbf{b}\cdot\mathbf{x})\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathbf{X}^{\prime}=\nabla_{\mathbf{b}}\mathbf{X}=\begin{pmatrix}\mathbf{x}_{1}\sigma(\mathbf{b}\cdot\mathbf{x}_{1})\sigma(-\mathbf{b}\cdot\mathbf{x}_{1}) & -\mathbf{x}_{1}\sigma(\mathbf{b}\cdot\mathbf{x}_{1})\sigma(-\mathbf{b}\cdot\mathbf{x}_{1})\\
+\mathbf{x}_{2}\sigma(\mathbf{b}\cdot\mathbf{x}_{2})\sigma(-\mathbf{b}\cdot\mathbf{x}_{2}) & -\mathbf{x}_{2}\sigma(\mathbf{b}\cdot\mathbf{x}_{2})\sigma(-\mathbf{b}\cdot\mathbf{x}_{2})\\
+\vdots & \vdots
+\end{pmatrix}\in\mathbb{R}^{T\times(d+1)\times2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+(The last line and all the following lines are not in mathematical standard
+ notation, since the elements of the matrix are vectors.
+ The derivative 
+\begin_inset Formula $\mathbf{X}^{\prime}$
+\end_inset
+
+ is a tensor 
+\begin_inset Formula $\in\mathbb{R}^{T\times(d+1)\times2}$
+\end_inset
+
+.
+ I still use matrix notation is a suggestive manner.)
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathbf{X}^{\top}\mathbf{X}^{\prime}=\begin{pmatrix}\sum_{i}\mathbf{x}_{i}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i}) & -\sum_{i}\mathbf{x}_{i}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\\
+\sum_{i}\mathbf{x}_{i}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i}) & -\sum_{i}\mathbf{x}_{i}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})
+\end{pmatrix}\in\mathbb{R}^{2\times(d+1)\times2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial}{\partial b_{j}}\mathbf{X}^{\top}\mathbf{X}+\left(...\right)^{\top} & =\begin{pmatrix}\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i}) & -\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\\
+\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i}) & -\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})
+\end{pmatrix}\\
+ & +\left(...\right)^{\top}\\
+ & =\begin{pmatrix}2\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i}) & \sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})(1-2\sigma(\mathbf{b}\cdot\mathbf{x}_{i}))\\
+\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})(1-2\sigma(\mathbf{b}\cdot\mathbf{x}_{i})) & -2\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})
+\end{pmatrix}\\
+ & =2\begin{pmatrix}\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i}) & -\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\\
+-\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i}) & -\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})
+\end{pmatrix}+\begin{pmatrix}0 & \sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\\
+\sum_{i}x_{i,j}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i}) & 0
+\end{pmatrix}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\[
+\mathbf{Y}^{\top}\mathbf{Y}^{\prime}=todo
+\]
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathbf{X}^{\top}\mathbf{Y}^{\prime}=\begin{pmatrix}\sum_{i}\mathbf{y}_{i}\sigma(\mathbf{b}\cdot\mathbf{y}_{i})\sigma(-\mathbf{b}\cdot\mathbf{y}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i}) & -\sum_{i}\mathbf{y}_{i}\sigma(\mathbf{b}\cdot\mathbf{y}_{i})\sigma(-\mathbf{b}\cdot\mathbf{y}_{i})\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\\
+\sum_{i}\mathbf{y}_{i}\sigma(\mathbf{b}\cdot\mathbf{y}_{i})\sigma(-\mathbf{b}\cdot\mathbf{y}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i}) & -\sum_{i}\mathbf{y}_{i}\sigma(\mathbf{b}\cdot\mathbf{y}_{i})\sigma(-\mathbf{b}\cdot\mathbf{y}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})
+\end{pmatrix}\in\mathbb{R}^{2\times(d+1)\times2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mathbf{Y}^{\top}\mathbf{X}^{\prime}=\begin{pmatrix}\sum_{i}\mathbf{x}_{i}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{y}_{i}) & -\sum_{i}\mathbf{x}_{i}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(\mathbf{b}\cdot\mathbf{y}_{i})\\
+\sum_{i}\mathbf{x}_{i}\sigma(\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{y}_{i}) & -\sum_{i}\mathbf{x}_{i}\sigma(\mathbf{b}\cdot\mathbf{y}_{i})\sigma(-\mathbf{b}\cdot\mathbf{x}_{i})\sigma(-\mathbf{b}\cdot\mathbf{y}_{i})
+\end{pmatrix}\in\mathbb{R}^{2\times(d+1)\times2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+Hessian normal form for the plane
+\begin_inset Formula 
+\[
+\mathbf{x}\cdot\hat{\mathbf{b}}-b_{0}=0
+\]
+
+\end_inset
+
+Identification of kinetic order parameters for non-equilibrium dynamics
+ with uni normal vector 
+\begin_inset Formula $\hat{\mathbf{b}}$
+\end_inset
+
+ and distance 
+\begin_inset Formula $b_{0}$
+\end_inset
+
+ from the origin.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula $R=\frac{\left(\sum_{i}\sigma(bx_{i})\sigma(by_{i})-\sum_{k,l}\sigma(bx_{k})\sigma(by_{l})\right)^{2}}{\sum_{i}\left(\sigma(bx_{i})\sigma(bx_{i})-\sum_{k}\sigma^{2}(bx_{k})\right)\sum_{j}\left(\sigma(by_{j})\sigma(by_{j})-\sum_{l}\sigma^{2}(by_{l})\right)}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Terme einzeln ableiten
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
