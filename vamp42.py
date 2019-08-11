@@ -10,7 +10,7 @@ def sigma(x):
     return scipy.special.expit(x)
 
 class VAMP42(object):
-    def __init__(self, X, Y, init='linear'):
+    def __init__(self, X, Y, init='linear', publication_gradient=False):
         r'''Find the main kinetic dividing plane with the variational approach to Markov processes (VAMP).
         
         Parameters
@@ -45,6 +45,7 @@ class VAMP42(object):
             self.initial = principal_vector
         else:
             self.initial = init
+        self.publication_gradient = publication_gradient
 
     def selftest(self, delta=1.E-8):
         #err = scipy.optimize.check_grad(self.function, self.gradient, self.initial, epsilon=delta)
@@ -125,7 +126,7 @@ class VAMP42(object):
 
     def score_function_and_gradient(self, b, which='both'):
         T = len(self.X)
-        sxp = sigma(np.dot(self.X, b))
+        sxp = sigma(np.dot(self.X, b))  # sxp: read sigma of x, plus
         sxm = 1. - sxp
         syp = sigma(np.dot(self.Y, b))
         sym = 1. - syp
@@ -163,11 +164,12 @@ class VAMP42(object):
 
         # gradient computation starts here
         d = len(b)
-        XtXp_sym = np.zeros((2, d, 2))
+        XtXp_sym = np.zeros((2, d, 2))  # XtXP, read: X transpose times X prime
         YtYp_sym = np.zeros((2, d, 2))
         XtYp = np.zeros((2, d, 2))
         YtXp = np.zeros((2, d, 2))
 
+        # XtXp_sym = XtXp + XptX
         XtXp_sym[0, :, 0] = 2*np.dot(self.X.T, sxpm*sxp) / T
         XtXp_sym[1, :, 1] = -2*np.dot(self.X.T, sxpm*sxm) / T
         XtXp_sym[1, :, 0] = np.dot(self.X.T, sxpm*(sxm - sxp)) / T
@@ -192,10 +194,26 @@ class VAMP42(object):
         YtXp[1, :, 1] = -np.dot(self.X.T, sxpm*sym) / T
         XptY = np.transpose(YtXp, axes=(2, 1, 0))
 
-        gradient = np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp + YptX)
-        gradient -= np.einsum('ij,jk,knl,li->n', Kf, C11_inv, YtYp_sym, Kr)
-        gradient += np.einsum('ij,jk,kni->n', Kr, C00_inv, XptY + XtYp)
-        gradient -= np.einsum('ij,jk,knl,li->n', Kr, C00_inv, XtXp_sym, Kf)
+        if not self.publication_gradient:  # gradient rederived by me
+            gradient = np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp + YptX)
+            gradient -= np.einsum('ij,jk,knl,li->n', Kf, C11_inv, YtYp_sym, Kr)
+            gradient += np.einsum('ij,jk,kni->n', Kr, C00_inv, XptY + XtYp)
+            gradient -= np.einsum('ij,jk,knl,li->n', Kr, C00_inv, XtXp_sym, Kf)
+        else:  # original formulation form the VAMP paper (as far as I understand it)
+            XtXp = np.zeros((2, d, 2))
+            YtYp = np.zeros((2, d, 2))
+            XtXp[0, :, 0] = np.dot(self.X.T, sxpm*sxp) / T
+            XtXp[1, :, 1] = -np.dot(self.X.T, sxpm*sxm) / T
+            XtXp[1, :, 0] = np.dot(self.X.T, sxpm*sxm) / T
+            XtXp[0, :, 1] = -np.dot(self.X.T, sxpm*sxp) / T
+            YtYp[0, :, 0] = np.dot(self.Y.T, sypm*syp) / T
+            YtYp[1, :, 1] = -np.dot(self.Y.T, sypm*sym) / T
+            YtYp[1, :, 0] = np.dot(self.Y.T, sypm*sym) / T
+            YtYp[0, :, 1] = -np.dot(self.Y.T, sypm*syp) / T
+            gradient = 2*np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp)
+            gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kf, C11_inv, Kr.T, XtXp)
+            gradient = 2*np.einsum('ij,jk,kni->n', Kr, C00_inv, XtYp)
+            gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kr, C00_inv, Kf.T, YtYp)
 
         assert gradient.shape == (d,)
 
