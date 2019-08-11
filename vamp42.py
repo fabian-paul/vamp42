@@ -164,44 +164,23 @@ class VAMP42(object):
 
         # gradient computation starts here
         d = len(b)
-        XtXp_sym = np.zeros((2, d, 2))  # XtXP, read: X transpose times X prime
-        YtYp_sym = np.zeros((2, d, 2))
-        XtYp = np.zeros((2, d, 2))
+        XtYp = np.zeros((2, d, 2))  # XtYP, read: X transpose times Y prime
         YtXp = np.zeros((2, d, 2))
-
-        # XtXp_sym = XtXp + XptX
-        XtXp_sym[0, :, 0] = 2*np.dot(self.X.T, sxpm*sxp) / T
-        XtXp_sym[1, :, 1] = -2*np.dot(self.X.T, sxpm*sxm) / T
-        XtXp_sym[1, :, 0] = np.dot(self.X.T, sxpm*(sxm - sxp)) / T
-        #XtXp_sym[1, :, 0] = np.dot(self.X.T, sxpm*(2.*sxm - 1.)) / T
-        XtXp_sym[0, :, 1] = XtXp_sym[1, :, 0]
-
-        YtYp_sym[0, :, 0] = 2*np.dot(self.Y.T, sypm*syp) / T
-        YtYp_sym[1, :, 1] = -2*np.dot(self.Y.T, sypm*sym) / T
-        YtYp_sym[1, :, 0] = np.dot(self.Y.T, sypm*(sym - syp)) / T
-        #YtYp_sym[1, :, 0] = np.dot(self.Y.T, sypm*(2.*sym - 1.)) / T
-        YtYp_sym[0, :, 1] = YtYp_sym[1, :, 0]
 
         XtYp[0, :, 0] = np.dot(self.Y.T, sypm*sxp) / T
         XtYp[0, :, 1] = -np.dot(self.Y.T, sypm*sxp) / T
         XtYp[1, :, 0] = np.dot(self.Y.T, sypm*sxm) / T
         XtYp[1, :, 1] = -np.dot(self.Y.T, sypm*sxm) / T
-        YptX = np.transpose(XtYp, axes=(2, 1, 0))
 
         YtXp[0, :, 0] = np.dot(self.X.T, sxpm*syp) / T
         YtXp[0, :, 1] = -np.dot(self.X.T, sxpm*syp) / T
         YtXp[1, :, 0] = np.dot(self.X.T, sxpm*sym) / T
         YtXp[1, :, 1] = -np.dot(self.X.T, sxpm*sym) / T
-        XptY = np.transpose(YtXp, axes=(2, 1, 0))
 
-        if not self.publication_gradient:  # gradient rederived by me
-            gradient = np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp + YptX)
-            gradient -= np.einsum('ij,jk,knl,li->n', Kf, C11_inv, YtYp_sym, Kr)
-            gradient += np.einsum('ij,jk,kni->n', Kr, C00_inv, XptY + XtYp)
-            gradient -= np.einsum('ij,jk,knl,li->n', Kr, C00_inv, XtXp_sym, Kf)
-        else:  # original formulation form the VAMP paper (as far as I understand it)
+        if self.publication_gradient:
             XtXp = np.zeros((2, d, 2))
             YtYp = np.zeros((2, d, 2))
+
             XtXp[0, :, 0] = np.dot(self.X.T, sxpm*sxp) / T
             XtXp[1, :, 1] = -np.dot(self.X.T, sxpm*sxm) / T
             XtXp[1, :, 0] = np.dot(self.X.T, sxpm*sxm) / T
@@ -210,10 +189,35 @@ class VAMP42(object):
             YtYp[1, :, 1] = -np.dot(self.Y.T, sypm*sym) / T
             YtYp[1, :, 0] = np.dot(self.Y.T, sypm*sym) / T
             YtYp[0, :, 1] = -np.dot(self.Y.T, sypm*syp) / T
+
             gradient = 2*np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp)
             gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kf, C11_inv, Kf.T, XtXp)
             gradient += 2*np.einsum('ij,jk,kni->n', Kr, C00_inv, XtYp)
             gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kr, C00_inv, Kr.T, YtYp)
+        else:  # gradient rederived by me
+            YptX = np.transpose(XtYp, axes=(2, 1, 0))
+            XptY = np.transpose(YtXp, axes=(2, 1, 0))
+
+            XtXp_sym = np.zeros((2, d, 2))
+            YtYp_sym = np.zeros((2, d, 2))
+
+            # XtXp_sym = XtXp + XptX
+            XtXp_sym[0, :, 0] = 2*np.dot(self.X.T, sxpm*sxp) / T
+            XtXp_sym[1, :, 1] = -2*np.dot(self.X.T, sxpm*sxm) / T
+            XtXp_sym[1, :, 0] = np.dot(self.X.T, sxpm*(sxm - sxp)) / T
+            #XtXp_sym[1, :, 0] = np.dot(self.X.T, sxpm*(2.*sxm - 1.)) / T
+            XtXp_sym[0, :, 1] = XtXp_sym[1, :, 0]
+
+            YtYp_sym[0, :, 0] = 2*np.dot(self.Y.T, sypm*syp) / T
+            YtYp_sym[1, :, 1] = -2*np.dot(self.Y.T, sypm*sym) / T
+            YtYp_sym[1, :, 0] = np.dot(self.Y.T, sypm*(sym - syp)) / T
+            #YtYp_sym[1, :, 0] = np.dot(self.Y.T, sypm*(2.*sym - 1.)) / T
+            YtYp_sym[0, :, 1] = YtYp_sym[1, :, 0]
+
+            gradient = np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp + YptX)
+            gradient -= np.einsum('ij,jk,knl,li->n', Kf, C11_inv, YtYp_sym, Kr)
+            gradient += np.einsum('ij,jk,kni->n', Kr, C00_inv, XptY + XtYp)
+            gradient -= np.einsum('ij,jk,knl,li->n', Kr, C00_inv, XtXp_sym, Kf)
 
         assert gradient.shape == (d,)
 
