@@ -10,15 +10,23 @@ def sigma(x):
     return scipy.special.expit(x)
 
 class VAMP42(object):
-    def __init__(self, X, Y, init='linear', publication_gradient=True):
+    def __init__(self, X, Y, init='linear'):
         r'''Find the main kinetic dividing plane with the variational approach to Markov processes (VAMP).
-        
+
         Parameters
         ----------
         X : ndarray((T, 2))
            Initial points form all transition pairs.
         Y : ndarray((T, 2))
            Final points from all transition pairs.
+        init : str or np.ndarray((3,))
+            one of 'random' or 'linear'
+            Initialization algorithm: 'random' initalizes randomly (respecting
+            scale and location of the data). 'linear' solves the linear VAMP
+            problem first to find guesses of initial parameters for the nonlinear
+            problem.
+            If an ndarray is passed in, it is used to directly initalize the 
+            sigmoid parameters.
         '''
         # augment X and Y with constant
         T = len(X)
@@ -45,20 +53,15 @@ class VAMP42(object):
             self.initial = principal_vector
         else:
             self.initial = init
-        self.publication_gradient = publication_gradient
+        self._b = self.initial
+        self._score = -self.score_function(self._b)
 
     def selftest(self, delta=1.E-8):
-        #err = scipy.optimize.check_grad(self.function, self.gradient, self.initial, epsilon=delta)
-        #if err > delta*10:
-        #    warnings.warn('Gradient self-test failed.')
-        #return err
-
         x0 = self.initial
         direction = (np.random.rand(len(self.initial)) - 0.5) * delta
         f1, grad1 = self.score_function_and_gradient(x0)
         f2 = self.score_function(x0 + direction)
         df = np.dot(grad1, direction)
-        #rel_err = np.abs(f2 - f1 - df) / max(abs(f1), abs(f2))
         rel_err = np.abs(f2 - f1 - df) / np.abs(f2 - f1)
         # rel_err is second order error term / first order error term = first order error term
         sign_correct = (np.sign(df) == np.sign(f2 - f1))
@@ -66,10 +69,9 @@ class VAMP42(object):
             warnings.warn('Analytical gradient has wrong sign.')
         if rel_err > 0.001:
             warnings.warn('Error %f of analytical gradient seems too large. Expected O(eps).' % rel_err)
-            # print('Error %f of analytical gradient seems too large. Expected O(eps).' % rel_err)
         return rel_err, sign_correct
 
-    def run(self, approx=False):
+    def run(self, approx=False, steps=None):
         'Perform optimization of the VAMP score, finding the optimal parameters of the sigmoid.'
         if approx:
             fprime = None
@@ -77,7 +79,7 @@ class VAMP42(object):
             self.selftest()
             fprime = self.score_gradient
         xopt, fopt, self._gopt, Bopt, self._func_calls, self._grad_calls, self._warnflag, hist = \
-            scipy.optimize.fmin_bfgs(f=self.score_function, x0=self.initial, fprime=fprime, disp=0, full_output=True, retall=True)
+            scipy.optimize.fmin_bfgs(f=self.score_function, x0=self._b, fprime=fprime, disp=0, full_output=True, retall=True, maxiter=steps)
         if self._warnflag != 0:
             if self._warnflag == 1:
                 warnings.warn('BFGS returned with error: Maximum number of iterations exceeded.')
@@ -177,47 +179,22 @@ class VAMP42(object):
         YtXp[1, :, 0] = np.dot(self.X.T, sxpm*sym) / T
         YtXp[1, :, 1] = -np.dot(self.X.T, sxpm*sym) / T
 
-        if self.publication_gradient:
-            XtXp = np.zeros((2, d, 2))
-            YtYp = np.zeros((2, d, 2))
+        XtXp = np.zeros((2, d, 2))
+        YtYp = np.zeros((2, d, 2))
 
-            XtXp[0, :, 0] = np.dot(self.X.T, sxpm*sxp) / T
-            XtXp[1, :, 1] = -np.dot(self.X.T, sxpm*sxm) / T
-            XtXp[1, :, 0] = np.dot(self.X.T, sxpm*sxm) / T
-            XtXp[0, :, 1] = -np.dot(self.X.T, sxpm*sxp) / T
-            YtYp[0, :, 0] = np.dot(self.Y.T, sypm*syp) / T
-            YtYp[1, :, 1] = -np.dot(self.Y.T, sypm*sym) / T
-            YtYp[1, :, 0] = np.dot(self.Y.T, sypm*sym) / T
-            YtYp[0, :, 1] = -np.dot(self.Y.T, sypm*syp) / T
+        XtXp[0, :, 0] = np.dot(self.X.T, sxpm*sxp) / T
+        XtXp[1, :, 1] = -np.dot(self.X.T, sxpm*sxm) / T
+        XtXp[1, :, 0] = np.dot(self.X.T, sxpm*sxm) / T
+        XtXp[0, :, 1] = -np.dot(self.X.T, sxpm*sxp) / T
+        YtYp[0, :, 0] = np.dot(self.Y.T, sypm*syp) / T
+        YtYp[1, :, 1] = -np.dot(self.Y.T, sypm*sym) / T
+        YtYp[1, :, 0] = np.dot(self.Y.T, sypm*sym) / T
+        YtYp[0, :, 1] = -np.dot(self.Y.T, sypm*syp) / T
 
-            gradient = 2*np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp)
-            gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kf, C11_inv, Kf.T, XtXp)
-            gradient += 2*np.einsum('ij,jk,kni->n', Kr, C00_inv, XtYp)
-            gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kr, C00_inv, Kr.T, YtYp)
-        else:  # gradient rederived by me
-            YptX = np.transpose(XtYp, axes=(2, 1, 0))
-            XptY = np.transpose(YtXp, axes=(2, 1, 0))
-
-            XtXp_sym = np.zeros((2, d, 2))
-            YtYp_sym = np.zeros((2, d, 2))
-
-            # XtXp_sym = XtXp + XptX
-            XtXp_sym[0, :, 0] = 2*np.dot(self.X.T, sxpm*sxp) / T
-            XtXp_sym[1, :, 1] = -2*np.dot(self.X.T, sxpm*sxm) / T
-            XtXp_sym[1, :, 0] = np.dot(self.X.T, sxpm*(sxm - sxp)) / T
-            #XtXp_sym[1, :, 0] = np.dot(self.X.T, sxpm*(2.*sxm - 1.)) / T
-            XtXp_sym[0, :, 1] = XtXp_sym[1, :, 0]
-
-            YtYp_sym[0, :, 0] = 2*np.dot(self.Y.T, sypm*syp) / T
-            YtYp_sym[1, :, 1] = -2*np.dot(self.Y.T, sypm*sym) / T
-            YtYp_sym[1, :, 0] = np.dot(self.Y.T, sypm*(sym - syp)) / T
-            #YtYp_sym[1, :, 0] = np.dot(self.Y.T, sypm*(2.*sym - 1.)) / T
-            YtYp_sym[0, :, 1] = YtYp_sym[1, :, 0]
-
-            gradient = np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp + YptX)
-            gradient -= np.einsum('ij,jk,knl,li->n', Kf, C11_inv, YtYp_sym, Kr)
-            gradient += np.einsum('ij,jk,kni->n', Kr, C00_inv, XptY + XtYp)
-            gradient -= np.einsum('ij,jk,knl,li->n', Kr, C00_inv, XtXp_sym, Kf)
+        gradient = 2*np.einsum('ij,jk,kni->n', Kf, C11_inv, YtXp)
+        gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kf, C11_inv, Kf.T, XtXp)
+        gradient += 2*np.einsum('ij,jk,kni->n', Kr, C00_inv, XtYp)
+        gradient -= 2*np.einsum('ij,jk,kl,lni->n', Kr, C00_inv, Kr.T, YtYp)
 
         assert gradient.shape == (d,)
 
@@ -264,13 +241,12 @@ if __name__== '__main__':
     Y = X + np.random.randn(200, dim)    
 
     print('self test:', VAMP42(X, Y).selftest())
-    
+
     #normal, intercept, steepness = VAMP42(X, Y).run(approx=True).ext_hnf
     #print('normal, intercept, steepness:', normal, intercept, steepness)
-    
+
     vamp = VAMP42(X, Y).run(approx=False)
     normal, intercept, steepness = vamp.ext_hnf
     print('score:', vamp._score)
     #print('normal, intercept, steepness:', normal, intercept, steepness)
-    
-    
+
