@@ -217,7 +217,7 @@ class VAMP42(object):
 
     def assign(self, x):
         'Crisp assingment of data points to one of the two "states"'
-        return (np.dot(x, self._b[1:]) + self._b[0] > 0).astype(int)
+        return (np.dot(x, self._b[1:]) + self._b[0] > 0.5).astype(int)
 
     @property
     def eigenvalue(self):
