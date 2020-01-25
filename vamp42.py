@@ -15,11 +15,11 @@ class VAMP42(object):
 
         Parameters
         ----------
-        X : ndarray((T, 2))
+        X : ndarray((T, dim))
            Initial points form all transition pairs.
-        Y : ndarray((T, 2))
+        Y : ndarray((T, dim))
            Final points from all transition pairs.
-        init : str or np.ndarray((3,))
+        init : str or np.ndarray((dim + 1,))
             one of 'random' or 'linear'
             Initialization algorithm: 'random' initalizes randomly (respecting
             scale and location of the data). 'linear' solves the linear VAMP
